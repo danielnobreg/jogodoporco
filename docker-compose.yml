@@ -1,0 +1,38 @@
+services:
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: porco-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: porco_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: porco_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d porco_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: porco-rabbitmq
+    ports:
+      - "5672:5672"    # porta AMQP — onde a API conecta
+      - "15672:15672"  # interface web de gerenciamento
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  rabbitmq_data:

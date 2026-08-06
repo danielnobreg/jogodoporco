@@ -1,0 +1,23 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+.vscode/
+
+# ambiente
+.env
+
+# Docker
+*.override.yml
+
+# AI & Agentic Frameworks
+.agents/
+.codex/
+.impeccable/
+.superpowers/
+skills-lock.json
+*.txt
+*.log
+jogo-do-porco-planejamento.md
+docs/superpowers/
