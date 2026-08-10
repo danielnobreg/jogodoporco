@@ -18,4 +18,11 @@ public class GuestController : ControllerBase
         var response = await _guestService.JoinAsGuestAsync(request);
         return Ok(response);
     }
+
+    [HttpPost("create")]
+    public async Task<IActionResult> Create([FromBody] GuestCreateRoomRequest request)
+    {
+        var response = await _guestService.CreateAsGuestAsync(request);
+        return Ok(response);
+    }
 }

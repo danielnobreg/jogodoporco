@@ -13,3 +13,16 @@ public record GuestJoinResponse(
     Guid RoomId,
     string RoomName
 );
+
+public record GuestCreateRoomRequest(
+    [Required][MaxLength(50)] string RoomName,
+    [Required][MaxLength(20)] string DisplayName,
+    int MaxPlayers = 8
+);
+
+public record GuestCreateRoomResponse(
+    string GuestToken,
+    Guid PlayerId,
+    Guid RoomId,
+    string RoomCode
+);

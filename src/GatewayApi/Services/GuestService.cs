@@ -12,6 +12,7 @@ namespace GatewayApi.Services;
 public interface IGuestService
 {
     Task<GuestJoinResponse> JoinAsGuestAsync(GuestJoinRequest request);
+    Task<GuestCreateRoomResponse> CreateAsGuestAsync(GuestCreateRoomRequest request);
 }
 
 public class GuestService : IGuestService
@@ -54,6 +55,34 @@ public class GuestService : IGuestService
 
         var token = GenerateGuestToken(guest);
         return new GuestJoinResponse(token, guest.Id, room.Id, room.Name);
+    }
+
+    public async Task<GuestCreateRoomResponse> CreateAsGuestAsync(GuestCreateRoomRequest request)
+    {
+        string code;
+        do { code = RoomCodeGenerator.Gerar(); }
+        while (await _db.GameRooms.AnyAsync(r => r.RoomCode == code));
+
+        var room = new GameRoom
+        {
+            Name = request.RoomName,
+            RoomCode = code,
+            MaxPlayers = request.MaxPlayers
+        };
+        _db.GameRooms.Add(room);
+
+        var guest = new PlayerSession
+        {
+            Username = request.DisplayName,
+            IsGuest = true,
+            GameRoomId = room.Id
+        };
+        _db.Players.Add(guest);
+
+        await _db.SaveChangesAsync();
+
+        var token = GenerateGuestToken(guest);
+        return new GuestCreateRoomResponse(token, guest.Id, room.Id, room.RoomCode);
     }
 
     private string GenerateGuestToken(PlayerSession guest)

@@ -32,10 +32,6 @@ export default function LobbyPage() {
   const router = useRouter();
  
   useEffect(() => {
-    if (isGuest()) {
-      logout();
-      return;
-    }
     if (!isLoggedIn()) {
       router.push("/login");
       return;
@@ -66,15 +62,23 @@ export default function LobbyPage() {
     }
   }
  
+  const [createError, setCreateError] = useState("");
+  const [creating, setCreating] = useState(false);
+
   async function handleCreateRoom(e: React.FormEvent) {
     e.preventDefault();
     if (!newRoomName.trim()) return;
+    setCreateError("");
+    setCreating(true);
     try {
       const room = await api.createRoom(newRoomName, maxPlayers);
       setIsCreateModalOpen(false);
       router.push(`/room/${room.id}`);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro ao criar sala:", err);
+      setCreateError(err.message || "Erro ao criar sala. Verifique sua conexão.");
+    } finally {
+      setCreating(false);
     }
   }
  
@@ -312,19 +316,27 @@ export default function LobbyPage() {
                   </div>
                 </div>
  
+                {createError && (
+                  <div className="bg-[#B91C1C]/10 border border-[#B91C1C]/35 text-[#FF8A8A] text-xs p-3.5 rounded-xl flex items-center gap-2">
+                    <span>⚠️</span>
+                    <span className="font-body font-bold">{createError}</span>
+                  </div>
+                )}
+
                 <div className="flex gap-3 border-t border-[#C9A227]/10 pt-4 mt-1">
                   <button
                     type="button"
-                    onClick={() => setIsCreateModalOpen(false)}
+                    onClick={() => { setIsCreateModalOpen(false); setCreateError(""); }}
                     className="flex-1 py-3 bg-[#B91C1C]/10 hover:bg-[#B91C1C]/20 border border-[#B91C1C]/35 text-[#FDFBF7] font-body text-xs rounded-xl transition-all cursor-pointer font-bold"
                   >
                     CANCELAR
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-3 bg-gradient-to-r from-[#D97706] to-[#C9A227] hover:from-[#EAB308] hover:to-[#D97706] text-[#051711] font-display font-black text-xs rounded-xl shadow-md transition-all hover:scale-[1.02] active:scale-98 cursor-pointer"
+                    disabled={creating}
+                    className="flex-1 py-3 bg-gradient-to-r from-[#D97706] to-[#C9A227] hover:from-[#EAB308] hover:to-[#D97706] text-[#051711] font-display font-black text-xs rounded-xl shadow-md transition-all hover:scale-[1.02] active:scale-98 cursor-pointer disabled:opacity-50"
                   >
-                    ABRIR MESA
+                    {creating ? "CRIANDO..." : "ABRIR MESA"}
                   </button>
                 </div>
               </form>

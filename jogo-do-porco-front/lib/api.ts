@@ -60,6 +60,12 @@ export const api = {
       body: JSON.stringify({ name, maxPlayers }),
     }),
 
+  createGuestRoom: (roomName: string, displayName: string, maxPlayers: number = 8) =>
+    request<{ guestToken: string; playerId: string; roomId: string; roomCode: string }>("/guest/create", {
+      method: "POST",
+      body: JSON.stringify({ roomName, displayName, maxPlayers }),
+    }),
+
   joinRoom: (roomId: string) =>
     request(`/rooms/${roomId}/join`, { method: "POST" }),
 
