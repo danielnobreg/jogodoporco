@@ -122,9 +122,10 @@ public class RoomService : IRoomService
         await _db.SaveChangesAsync();
 
         var playerIds = room.Players.OrderBy(p => p.Id).Select(p => p.Id).ToList();
+        var botPlayerIds = room.Players.Where(p => p.IsBot).Select(p => p.Id).ToList();
 
         // Envia evento pro GameEngine iniciar
-        await _publishEndpoint.Publish(new GameStarted(room.Id, playerIds));
+        await _publishEndpoint.Publish(new GameStarted(room.Id, playerIds, botPlayerIds));
     }
 
     public async Task LeaveRoomAsync(Guid playerId)
