@@ -22,9 +22,9 @@ public class RoomService : IRoomService
         _hubContext = hubContext;
     }
 
-    public async Task<RoomResponse> CreateRoomAsync(string creatorEmail, CreateRoomRequest request)
+    public async Task<RoomResponse> CreateRoomAsync(Guid playerId, CreateRoomRequest request)
     {
-        var player = await _db.Players.FirstOrDefaultAsync(p => p.Email == creatorEmail)
+        var player = await _db.Players.FirstOrDefaultAsync(p => p.Id == playerId)
             ?? throw new InvalidOperationException("Jogador não encontrado");
 
         string code;
@@ -36,10 +36,10 @@ public class RoomService : IRoomService
         player.GameRoomId = room.Id;
 
         await _db.SaveChangesAsync();
-        return ToResponse(room, new List<PlayerDto> { new(player.Id, player.Username, player.Letters) });
+        return ToResponse(room, new List<PlayerDto> { new(player.Id, player.Username, player.Letters, player.IsBot) });
     }
 
-    public async Task<JoinRoomResponse> JoinRoomAsync(string playerEmail, Guid roomId)
+    public async Task<JoinRoomResponse> JoinRoomAsync(Guid playerId, Guid roomId)
     {
         var room = await _db.GameRooms
             .Include(r => r.Players)   // carrega os jogadores — equivalente ao JOIN
@@ -52,7 +52,7 @@ public class RoomService : IRoomService
         if (room.Players.Count >= room.MaxPlayers)
             throw new InvalidOperationException("Sala cheia");
 
-        var player = await _db.Players.FirstOrDefaultAsync(p => p.Email == playerEmail)
+        var player = await _db.Players.FirstOrDefaultAsync(p => p.Id == playerId)
             ?? throw new InvalidOperationException("Jogador não encontrado");
 
         if (room.Players.Any(p => p.Username == player.Username))

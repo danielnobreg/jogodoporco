@@ -30,8 +30,10 @@ public class RoomController : ControllerBase
     [HttpGet("history")]
     public async Task<IActionResult> GetMatchHistory([FromServices] AppDbContext db)
     {
-        var email = User.FindFirstValue(ClaimTypes.Email)!;
-        var player = await db.Players.FirstOrDefaultAsync(p => p.Email == email);
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdStr, out var playerId)) return Unauthorized();
+
+        var player = await db.Players.FirstOrDefaultAsync(p => p.Id == playerId);
         if (player == null) return NotFound("Jogador não encontrado");
 
         var username = player.Username;
@@ -48,17 +50,20 @@ public class RoomController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateRoom([FromBody] CreateRoomRequest request)
     {
-        // pega o email do token JWT — equivalente ao @AuthenticationPrincipal do Spring
-        var email = User.FindFirstValue(ClaimTypes.Email)!;
-        var room = await _roomService.CreateRoomAsync(email, request);
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdStr, out var playerId)) return Unauthorized();
+
+        var room = await _roomService.CreateRoomAsync(playerId, request);
         return CreatedAtAction(nameof(GetRooms), room);
     }
 
     [HttpPost("{roomId:guid}/join")]
     public async Task<IActionResult> JoinRoom(Guid roomId)
     {
-        var email = User.FindFirstValue(ClaimTypes.Email)!;
-        var result = await _roomService.JoinRoomAsync(email, roomId);
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdStr, out var playerId)) return Unauthorized();
+
+        var result = await _roomService.JoinRoomAsync(playerId, roomId);
         return Ok(result);
     }
     

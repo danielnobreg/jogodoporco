@@ -4,8 +4,8 @@ namespace GatewayApi.Services;
 
 public interface IRoomService
 {
-    Task<RoomResponse> CreateRoomAsync(string creatorEmail, CreateRoomRequest request);
-    Task<JoinRoomResponse> JoinRoomAsync(string playerEmail, Guid roomId);
+    Task<RoomResponse> CreateRoomAsync(Guid playerId, CreateRoomRequest request);
+    Task<JoinRoomResponse> JoinRoomAsync(Guid playerId, Guid roomId);
     Task<List<RoomResponse>> GetAvailableRoomsAsync();
     Task<RoomResponse?> GetRoomByCodeAsync(string code);
     Task<RoomResponse?> GetRoomByIdAsync(Guid roomId);
