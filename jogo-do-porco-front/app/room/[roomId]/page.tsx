@@ -867,9 +867,9 @@ export default function RoomPage() {
             ) : (
               <motion.div key="mesa" className="flex flex-col items-center gap-6 text-center">
                 {/* Pilha Central de Cartas (Casino Style) */}
-                <div className="relative flex justify-center items-center h-36 w-60 mb-4 select-none gap-8">
-                  {/* Pilha de Compra (Draw Pile / Montinho Arrastável) */}
-                  <div className="relative">
+                <div className="relative flex justify-center items-center h-36 w-full max-w-xs mb-4 select-none gap-6 md:gap-10">
+                  {/* Pilha de Compra (Draw Pile / Monte de Compra) */}
+                  <div className="relative w-14 h-24 md:w-20 md:h-32">
                     {drawPileCount > 0 ? (
                       <motion.div
                         drag={isMyTurn && hand.length === 9 ? true : false}
@@ -885,28 +885,30 @@ export default function RoomPage() {
                           }
                         }}
                         onClick={() => isMyTurn && hand.length === 9 && handleDrawCard("deck")}
-                        className={`relative ${isMyTurn && hand.length === 9 ? "cursor-grab active:cursor-grabbing hover:scale-105" : ""} transition-transform select-none`}
+                        className={`relative w-full h-full ${isMyTurn && hand.length === 9 ? "cursor-grab active:cursor-grabbing hover:scale-105" : ""} transition-transform select-none`}
                         aria-label="Monte de compra"
                       >
+                        {/* Cartas de Fundo da Pilha */}
                         {drawPileCount > 2 && (
-                          <div className="absolute left-0 top-0 transform -rotate-6 opacity-30 pointer-events-none">
+                          <div className="absolute inset-0 transform -rotate-6 -translate-x-1 -translate-y-1 opacity-40 pointer-events-none">
                             <CardComponent card={{ suit: "Especial", value: "?" }} faceDown />
                           </div>
                         )}
                         {drawPileCount > 1 && (
-                          <div className="absolute left-0.5 top-0.5 transform -rotate-3 opacity-60 pointer-events-none">
+                          <div className="absolute inset-0 transform -rotate-3 -translate-x-0.5 -translate-y-0.5 opacity-70 pointer-events-none">
                             <CardComponent card={{ suit: "Especial", value: "?" }} faceDown />
                           </div>
                         )}
-                        <div className="absolute left-1 top-1 w-full h-full">
+                        {/* Carta do Topo */}
+                        <div className="relative w-full h-full z-10">
                           <CardComponent card={{ suit: "Especial", value: "?" }} faceDown />
-                          <span className="absolute bottom-1.5 right-2.5 bg-[#B91C1C] border border-[#FDFBF7]/10 text-[#FDFBF7] text-[9px] px-1.5 py-0.5 rounded-full font-bold shadow-md select-none pointer-events-none">
+                          <span className="absolute -bottom-1.5 -right-1.5 bg-[#B91C1C] border border-[#FDFBF7]/20 text-[#FDFBF7] text-[10px] md:text-xs font-display font-black px-2 py-0.5 rounded-full shadow-lg z-20 pointer-events-none">
                             {drawPileCount}
                           </span>
                         </div>
                       </motion.div>
                     ) : (
-                      <div className="w-20 h-32 rounded-xl border border-dashed border-[#FDFBF7]/10 flex items-center justify-center text-[10px] uppercase font-bold tracking-widest text-[#FDFBF7]/30">
+                      <div className="w-full h-full rounded-xl border border-dashed border-[#FDFBF7]/10 flex items-center justify-center text-[10px] uppercase font-bold tracking-widest text-[#FDFBF7]/30">
                         Vazio
                       </div>
                     )}
@@ -914,7 +916,7 @@ export default function RoomPage() {
 
                   {/* Pilha de Descarte (Discard Pile Stack Realista) */}
                   <div
-                    className={`relative w-20 h-32 rounded-xl transition-all duration-300 ${isDraggingOverPile ? "ring-2 ring-[#C9A227] scale-110 bg-[#C9A227]/10 shadow-[0_0_20px_rgba(201,162,39,0.5)]" : ""}`}
+                    className={`relative w-14 h-24 md:w-20 md:h-32 rounded-xl transition-all duration-300 ${isDraggingOverPile ? "ring-2 ring-[#C9A227] scale-110 bg-[#C9A227]/10 shadow-[0_0_20px_rgba(201,162,39,0.5)]" : ""}`}
                   >
                     {discardHistory.length > 0 ? (
                       <div
