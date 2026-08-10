@@ -49,7 +49,8 @@ public record RoundCompleted(
 
 public record GameStarted(
     Guid GameId,
-    List<Guid> PlayerIds
+    List<Guid> PlayerIds,
+    List<Guid>? BotPlayerIds = null
 );
 
 public record StartNextRound(

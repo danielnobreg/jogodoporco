@@ -16,6 +16,7 @@ public class PlayerSession
     public string? PasswordHash { get; set; }
 
     public bool IsGuest { get; set; } = false;
+    public bool IsBot { get; set; } = false;
 
     // letras acumuladas: "P", "PO", "POR", "PORC", "PORCO"
     public string Letters { get; set; } = string.Empty;

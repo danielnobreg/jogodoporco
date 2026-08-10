@@ -12,4 +12,6 @@ public interface IRoomService
     Task StartRoomAsync(Guid roomId);
     Task LeaveRoomAsync(Guid playerId);
     Task UpdateVisibilityAsync(Guid roomId, bool isPrivate);
+    Task<PlayerDto> AddBotAsync(Guid roomId);
+    Task RemoveBotAsync(Guid roomId, Guid botId);
 }

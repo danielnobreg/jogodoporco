@@ -7,10 +7,12 @@ namespace GameEngine.Consumers;
 public class PlayerSlappedConsumer : IConsumer<PlayerSlapped>
 {
     private readonly GameLogicService _logic;
+    private readonly BotService _botService;
 
-    public PlayerSlappedConsumer(GameLogicService logic)
+    public PlayerSlappedConsumer(GameLogicService logic, BotService botService)
     {
         _logic = logic;
+        _botService = botService;
     }
 
     public async Task Consume(ConsumeContext<PlayerSlapped> context)
@@ -52,5 +54,7 @@ public class PlayerSlappedConsumer : IConsumer<PlayerSlapped>
             state.DiscardPile.LastOrDefault(),
             state.SlapOrder.Select(s => new SlapInfo(s.PlayerId, s.Timestamp)).ToList()
         ));
+
+        _botService.TriggerBotCheck(msg.GameId);
     }
 }

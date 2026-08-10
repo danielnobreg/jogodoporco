@@ -7,6 +7,7 @@ public class GameState
     public Dictionary<Guid, List<Card>> Hands { get; set; } = new();
     public Dictionary<Guid, string> PlayerLetters { get; set; } = new();  // "P", "PO"...
     public Guid CurrentTurnPlayerId { get; set; }
+    public HashSet<Guid> BotPlayerIds { get; set; } = new();
     public Guid? CoringaHolderId { get; set; }
     public string Phase { get; set; } = "Playing";  // Playing, Slapping, RoundOver, GameOver
 

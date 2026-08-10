@@ -9,7 +9,7 @@ public record CreateRoomRequest(
     int MaxPlayers = 8
 );
 
-public record PlayerDto(Guid Id, string Username, string Letters);
+public record PlayerDto(Guid Id, string Username, string Letters, bool IsBot = false);
 
 public record RoomResponse(
     Guid Id,

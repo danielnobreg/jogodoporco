@@ -76,7 +76,7 @@ public class RoomService : IRoomService
             .Where(r => r.Status == GameStatus.Lobby && !r.IsPrivate)
             .ToListAsync();
 
-        return rooms.Select(r => ToResponse(r, r.Players.OrderBy(p => p.CreatedAt).Select(p => new PlayerDto(p.Id, p.Username, p.Letters)).ToList())).ToList();
+        return rooms.Select(r => ToResponse(r, r.Players.OrderBy(p => p.CreatedAt).Select(p => new PlayerDto(p.Id, p.Username, p.Letters, p.IsBot)).ToList())).ToList();
     }
 
     public async Task<RoomResponse?> GetRoomByCodeAsync(string code)
@@ -87,7 +87,7 @@ public class RoomService : IRoomService
 
         if (room == null) return null;
 
-        return ToResponse(room, room.Players.OrderBy(p => p.CreatedAt).Select(p => new PlayerDto(p.Id, p.Username, p.Letters)).ToList());
+        return ToResponse(room, room.Players.OrderBy(p => p.CreatedAt).Select(p => new PlayerDto(p.Id, p.Username, p.Letters, p.IsBot)).ToList());
     }
 
     public async Task<RoomResponse?> GetRoomByIdAsync(Guid roomId)
@@ -98,7 +98,7 @@ public class RoomService : IRoomService
 
         if (room == null) return null;
 
-        return ToResponse(room, room.Players.OrderBy(p => p.CreatedAt).Select(p => new PlayerDto(p.Id, p.Username, p.Letters)).ToList());
+        return ToResponse(room, room.Players.OrderBy(p => p.CreatedAt).Select(p => new PlayerDto(p.Id, p.Username, p.Letters, p.IsBot)).ToList());
     }
 
     public async Task StartRoomAsync(Guid roomId)
@@ -186,7 +186,7 @@ public class RoomService : IRoomService
             {
                 // Se a partida está no lobby ou sobrou mais de 1 jogador
                 var host = remainingPlayers.OrderBy(p => p.CreatedAt).First();
-                var playersDto = remainingPlayers.Select(p => new PlayerDto(p.Id, p.Username, p.Letters)).ToList();
+                var playersDto = remainingPlayers.Select(p => new PlayerDto(p.Id, p.Username, p.Letters, p.IsBot)).ToList();
  
                 await _hubContext.Clients.Group(roomId.ToString()).SendAsync("RoomUpdated", new
                 {
@@ -205,6 +205,78 @@ public class RoomService : IRoomService
 
         room.IsPrivate = isPrivate;
         await _db.SaveChangesAsync();
+    }
+
+    public async Task<PlayerDto> AddBotAsync(Guid roomId)
+    {
+        var room = await _db.GameRooms
+            .Include(r => r.Players)
+            .FirstOrDefaultAsync(r => r.Id == roomId)
+            ?? throw new InvalidOperationException("Sala não encontrada");
+
+        if (room.Status != GameStatus.Lobby)
+            throw new InvalidOperationException("Não é possível adicionar bots com a partida em andamento");
+
+        if (room.Players.Count >= room.MaxPlayers)
+            throw new InvalidOperationException("A sala já atingiu o limite de jogadores");
+
+        var botCount = room.Players.Count(p => p.IsBot);
+        var botName = $"Bot {botCount + 1} 🤖";
+
+        var bot = new PlayerSession
+        {
+            Id = Guid.NewGuid(),
+            Username = botName,
+            IsGuest = true,
+            IsBot = true,
+            ConnectionId = "BOT",
+            GameRoomId = roomId
+        };
+
+        _db.Players.Add(bot);
+        await _db.SaveChangesAsync();
+
+        var host = room.Players.OrderBy(p => p.CreatedAt).First();
+        var playersDto = room.Players.OrderBy(p => p.CreatedAt).Select(p => new PlayerDto(p.Id, p.Username, p.Letters, p.IsBot)).ToList();
+
+        await _hubContext.Clients.Group(roomId.ToString()).SendAsync("RoomUpdated", new
+        {
+            HostId = host.Id,
+            Players = playersDto,
+            PlayerCount = room.Players.Count
+        });
+
+        return new PlayerDto(bot.Id, bot.Username, bot.Letters, bot.IsBot);
+    }
+
+    public async Task RemoveBotAsync(Guid roomId, Guid botId)
+    {
+        var room = await _db.GameRooms
+            .Include(r => r.Players)
+            .FirstOrDefaultAsync(r => r.Id == roomId);
+
+        if (room == null) return;
+
+        var bot = room.Players.FirstOrDefault(p => p.Id == botId && p.IsBot);
+        if (bot != null)
+        {
+            _db.Players.Remove(bot);
+            await _db.SaveChangesAsync();
+
+            var remainingPlayers = room.Players.Where(p => p.Id != botId).ToList();
+            if (remainingPlayers.Any())
+            {
+                var host = remainingPlayers.OrderBy(p => p.CreatedAt).First();
+                var playersDto = remainingPlayers.Select(p => new PlayerDto(p.Id, p.Username, p.Letters, p.IsBot)).ToList();
+
+                await _hubContext.Clients.Group(roomId.ToString()).SendAsync("RoomUpdated", new
+                {
+                    HostId = host.Id,
+                    Players = playersDto,
+                    PlayerCount = remainingPlayers.Count
+                });
+            }
+        }
     }
 
     private static RoomResponse ToResponse(GameRoom room, List<PlayerDto> players) =>

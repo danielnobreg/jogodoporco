@@ -11,7 +11,7 @@ public class GameLogicService
         _store = store;
     }
 
-    public GameState IniciarPartida(Guid gameId, List<Guid> playerIds)
+    public GameState IniciarPartida(Guid gameId, List<Guid> playerIds, List<Guid>? botPlayerIds = null)
     {
         Dictionary<Guid, List<Card>> maos = null;
         List<Card> baralho = null;
@@ -45,6 +45,7 @@ public class GameLogicService
         {
             GameId = gameId,
             PlayerIds = playerIds,
+            BotPlayerIds = botPlayerIds != null ? botPlayerIds.ToHashSet() : new HashSet<Guid>(),
             Hands = maos,
             PlayerLetters = playerIds.ToDictionary(id => id, _ => ""),
             CurrentTurnPlayerId = playerIds[0],

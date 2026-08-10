@@ -554,20 +554,60 @@ export default function RoomPage() {
     }
   }, [hand, trios, handleDrawCard]);
  
-  // Timer de Turno (Auto-Play)
+  // Estado para a Pilha de Descarte Acumulada (Pilha Real)
+  const [discardHistory, setDiscardHistory] = useState<Card[]>([]);
+
+  // Atualiza histórico da pilha de descarte
   useEffect(() => {
-    if (!isMyTurn || room?.status !== "Playing" || phase !== "Playing") {
+    if (lastPassedCard) {
+      setDiscardHistory(prev => {
+        const top = prev[prev.length - 1];
+        if (top && top.suit === lastPassedCard.suit && top.value === lastPassedCard.value) {
+          return prev;
+        }
+        return [...prev.slice(-4), lastPassedCard];
+      });
+    } else {
+      setDiscardHistory([]);
+    }
+  }, [lastPassedCard]);
+
+  // Handlers para Bots
+  const handleAddBot = useCallback(async () => {
+    try {
+      await api.addBot(roomId);
+    } catch (err: any) {
+      console.error("Erro ao adicionar bot:", err);
+      setMessage(err.message || "Erro ao adicionar bot");
+    }
+  }, [roomId]);
+
+  const handleRemoveBot = useCallback(async (botId: string) => {
+    try {
+      await api.removeBot(roomId, botId);
+    } catch (err: any) {
+      console.error("Erro ao remover bot:", err);
+    }
+  }, [roomId]);
+
+  // Reseta o tempo do turno quando o jogador ativo muda
+  useEffect(() => {
+    setTurnTimeLeft(20);
+    isAutoPlayingRef.current = false;
+  }, [currentTurnPlayerId]);
+
+  // Timer de Turno (Auto-Play + Visual Countdown para todos)
+  useEffect(() => {
+    if (room?.status !== "Playing" || phase !== "Playing") {
       setTurnTimeLeft(20);
       return;
     }
- 
-    setTurnTimeLeft(20);
- 
+
     const interval = setInterval(() => {
       setTurnTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(interval);
-          if (!isAutoPlayingRef.current) {
+          if (isMyTurn && !isAutoPlayingRef.current) {
             isAutoPlayingRef.current = true;
             triggerAutoPlay();
           }
@@ -576,9 +616,9 @@ export default function RoomPage() {
         return prev - 1;
       });
     }, 1000);
- 
+
     return () => clearInterval(interval);
-  }, [isMyTurn, hand.length, room?.status, phase, triggerAutoPlay]);
+  }, [room?.status, phase, isMyTurn, triggerAutoPlay]);
  
   const renderFloatingReactions = (playerId: string) => {
     const reactions = avatarReactions[playerId.toLowerCase()] || [];
@@ -828,64 +868,90 @@ export default function RoomPage() {
               <motion.div key="mesa" className="flex flex-col items-center gap-6 text-center">
                 {/* Pilha Central de Cartas (Casino Style) */}
                 <div className="relative flex justify-center items-center h-36 w-60 mb-4 select-none gap-8">
-                  {/* Monte de Compra (Draw Pile Stack) */}
-                  {drawPileCount > 0 ? (
-                    <div
-                      className={`relative w-20 h-32 ${isMyTurn && hand.length === 9 ? "cursor-pointer hover:scale-105 active:scale-95 transition-transform" : ""}`}
-                      onClick={() => isMyTurn && hand.length === 9 && handleDrawCard("deck")}
-                      aria-label="Monte de compra"
-                    >
-                      {drawPileCount > 2 && (
-                        <div className="absolute left-0 top-0 transform -rotate-6 opacity-30 pointer-events-none">
+                  {/* Pilha de Compra (Draw Pile / Montinho Arrastável) */}
+                  <div className="relative">
+                    {drawPileCount > 0 ? (
+                      <motion.div
+                        drag={isMyTurn && hand.length === 9 ? true : false}
+                        dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+                        dragElastic={0.8}
+                        dragSnapToOrigin={true}
+                        onDragEnd={(e, info) => {
+                          if (isMyTurn && hand.length === 9) {
+                            const dist = Math.sqrt(info.offset.x * info.offset.x + info.offset.y * info.offset.y);
+                            if (dist > 35) {
+                              handleDrawCard("deck");
+                            }
+                          }
+                        }}
+                        onClick={() => isMyTurn && hand.length === 9 && handleDrawCard("deck")}
+                        className={`relative ${isMyTurn && hand.length === 9 ? "cursor-grab active:cursor-grabbing hover:scale-105" : ""} transition-transform select-none`}
+                        aria-label="Monte de compra"
+                      >
+                        {drawPileCount > 2 && (
+                          <div className="absolute left-0 top-0 transform -rotate-6 opacity-30 pointer-events-none">
+                            <CardComponent card={{ suit: "Especial", value: "?" }} faceDown />
+                          </div>
+                        )}
+                        {drawPileCount > 1 && (
+                          <div className="absolute left-0.5 top-0.5 transform -rotate-3 opacity-60 pointer-events-none">
+                            <CardComponent card={{ suit: "Especial", value: "?" }} faceDown />
+                          </div>
+                        )}
+                        <div className="absolute left-1 top-1 w-full h-full">
                           <CardComponent card={{ suit: "Especial", value: "?" }} faceDown />
+                          <span className="absolute bottom-1.5 right-2.5 bg-[#B91C1C] border border-[#FDFBF7]/10 text-[#FDFBF7] text-[9px] px-1.5 py-0.5 rounded-full font-bold shadow-md select-none pointer-events-none">
+                            {drawPileCount}
+                          </span>
                         </div>
-                      )}
-                      {drawPileCount > 1 && (
-                        <div className="absolute left-0.5 top-0.5 transform -rotate-3 opacity-60 pointer-events-none">
-                          <CardComponent card={{ suit: "Especial", value: "?" }} faceDown />
-                        </div>
-                      )}
-                      <div className="absolute left-1 top-1 w-full h-full">
-                        <CardComponent card={{ suit: "Especial", value: "?" }} faceDown />
-                        <span className="absolute bottom-1.5 right-2.5 bg-[#B91C1C] border border-[#FDFBF7]/10 text-[#FDFBF7] text-[9px] px-1.5 py-0.5 rounded-full font-bold shadow-md select-none">
-                          {drawPileCount}
-                        </span>
+                      </motion.div>
+                    ) : (
+                      <div className="w-20 h-32 rounded-xl border border-dashed border-[#FDFBF7]/10 flex items-center justify-center text-[10px] uppercase font-bold tracking-widest text-[#FDFBF7]/30">
+                        Vazio
                       </div>
-                    </div>
-                  ) : (
-                    <div className="w-20 h-32 rounded-xl border border-dashed border-[#FDFBF7]/10 flex items-center justify-center text-[10px] uppercase font-bold tracking-widest text-[#FDFBF7]/30">
-                      Vazio
-                    </div>
-                  )}
- 
-                  {/* Pilha de Descarte (Discard Pile Stack) */}
+                    )}
+                  </div>
+
+                  {/* Pilha de Descarte (Discard Pile Stack Realista) */}
                   <div
                     className={`relative w-20 h-32 rounded-xl transition-all duration-300 ${isDraggingOverPile ? "ring-2 ring-[#C9A227] scale-110 bg-[#C9A227]/10 shadow-[0_0_20px_rgba(201,162,39,0.5)]" : ""}`}
                   >
-                    {lastPassedCard ? (
+                    {discardHistory.length > 0 ? (
                       <div
                         className={`relative w-full h-full ${isMyTurn && hand.length === 9 ? "cursor-pointer hover:scale-105 active:scale-95 transition-transform" : ""}`}
                         onClick={() => isMyTurn && hand.length === 9 && handleDrawCard("pile")}
                         aria-label="Pilha de descarte"
                       >
-                        {/* Efeito de Pilha Acumulada */}
-                        <div className="absolute -left-1.5 -top-1.5 transform rotate-6 opacity-35 pointer-events-none">
-                          <CardComponent card={{ suit: "Copas", value: "7" }} faceDown />
-                        </div>
-                        <div className="absolute left-1.5 top-1 transform -rotate-3 opacity-55 pointer-events-none">
-                          <CardComponent card={{ suit: "Espadas", value: "Q" }} faceDown />
-                        </div>
- 
-                        {/* Carta do Topo (Face Up) com animação ao mudar a carta */}
-                        <motion.div
-                          key={lastPassedCard.value + lastPassedCard.suit}
-                          initial={{ scale: 0.6, y: 250, opacity: 0, rotate: 15 }}
-                          animate={{ scale: 1, y: 0, opacity: 1, rotate: 0 }}
-                          transition={{ type: "spring", stiffness: 100, damping: 15 }}
-                          className="absolute inset-0"
-                        >
-                          <CardComponent card={lastPassedCard} faceDown={false} />
-                        </motion.div>
+                        {/* Cartas Inferiores Empilhadas no Fundo */}
+                        {discardHistory.slice(0, discardHistory.length - 1).map((c, idx) => {
+                          const rots = [-6, 4, -3, 5];
+                          const rot = rots[idx % rots.length];
+                          return (
+                            <div
+                              key={`discard-bg-${c.suit}-${c.value}-${idx}`}
+                              className="absolute inset-0 pointer-events-none"
+                              style={{ transform: `rotate(${rot}deg) translate(${idx * 2}px, ${idx * 1.5}px)`, opacity: 0.6 + idx * 0.1 }}
+                            >
+                              <CardComponent card={c} faceDown={false} />
+                            </div>
+                          );
+                        })}
+
+                        {/* Carta do Topo Animada */}
+                        {(() => {
+                          const topCard = discardHistory[discardHistory.length - 1];
+                          return (
+                            <motion.div
+                              key={`discard-top-${topCard.value}-${topCard.suit}`}
+                              initial={{ scale: 0.6, y: 150, opacity: 0, rotate: 12 }}
+                              animate={{ scale: 1, y: 0, opacity: 1, rotate: 0 }}
+                              transition={{ type: "spring", stiffness: 140, damping: 18 }}
+                              className="absolute inset-0 z-10"
+                            >
+                              <CardComponent card={topCard} faceDown={false} />
+                            </motion.div>
+                          );
+                        })()}
                       </div>
                     ) : (
                       <div className="w-full h-full rounded-xl border border-dashed border-[#C9A227]/25 flex items-center justify-center text-[10px] uppercase font-bold tracking-widest text-[#FDFBF7]/30">
@@ -933,6 +999,14 @@ export default function RoomPage() {
                     {room.playerCount < 2 ? "Aguardando Jogadores (Mín. 2)" : "Iniciar Partida"}
                   </button>
 
+                  <button
+                    onClick={handleAddBot}
+                    disabled={room.playerCount >= room.maxPlayers}
+                    className="w-full bg-[#0A2B20] border border-[#C9A227]/40 text-[#C9A227] hover:bg-[#C9A227]/10 disabled:opacity-40 font-display font-bold py-2 rounded-lg transition-all text-xs flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    🤖 Adicionar Bot
+                  </button>
+
                   <div className="flex items-center gap-2 mt-1 text-xs text-[#F4E9D8]/80 font-body">
                     <input
                       type="checkbox"
@@ -951,6 +1025,34 @@ export default function RoomPage() {
                   Aguardando o host iniciar a partida...
                 </p>
               )}
+            </div>
+          )}
+
+          {room?.roomCode && room.status === "Lobby" && (
+            <div className="bg-[#0A2B20]/80 border border-[#C9A227]/20 p-4 rounded-xl shadow-xl">
+              <h3 className="font-display text-[10px] font-black text-[#C9A227] tracking-widest uppercase mb-3">Jogadores na Sala ({room.players.length}/{room.maxPlayers})</h3>
+              <div className="flex flex-col gap-2">
+                {room.players.map((player) => (
+                  <div key={player.id} className="flex justify-between items-center bg-[#051711] p-2 rounded-lg border border-[#C9A227]/5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-body font-bold text-[#FDFBF7]">{player.username}</span>
+                      {player.isBot && (
+                        <span className="text-[9px] font-display font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20">BOT</span>
+                      )}
+                    </div>
+                    {room?.players && room.players[0]?.id === player.id ? (
+                      <span className="text-[9px] font-display font-black text-[#C9A227] bg-[#C9A227]/10 px-2 py-0.5 rounded border border-[#C9A227]/20 uppercase tracking-wider">Host</span>
+                    ) : isHost && player.isBot ? (
+                      <button
+                        onClick={() => handleRemoveBot(player.id)}
+                        className="text-[9px] text-red-400 hover:text-red-300 font-bold bg-red-400/10 px-2 py-0.5 rounded border border-red-400/20 cursor-pointer"
+                      >
+                        Remover
+                      </button>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -998,9 +1100,9 @@ export default function RoomPage() {
               isForbidden={isCardForbidden(card)}
               customInitial={lastDrawnCard?.value === card.value && lastDrawnCard?.suit === card.suit ? { opacity: 0, y: -300, scale: 0.5 } : undefined}
               onAnimationComplete={() => { if (card.value === lastDrawnCard?.value && card.suit === lastDrawnCard?.suit) setLastDrawnCard(null); }}
-              drag={isMyTurn && hand.length === 10 && !isCardFrozen(card) && !isCardForbidden(card)}
+              drag={!isCardFrozen(card) && !isCardForbidden(card)}
               onDrag={(e, info) => {
-                if (info.offset.y < -80) {
+                if (info.offset.y < -70 && isMyTurn && hand.length === 10) {
                   setIsDraggingOverPile(true);
                 } else {
                   setIsDraggingOverPile(false);
@@ -1008,8 +1110,26 @@ export default function RoomPage() {
               }}
               onDragEnd={(e, info) => {
                 setIsDraggingOverPile(false);
-                if (info.offset.y < -80) {
+                // 1. Arrasta para cima (> 70px) -> Passa a carta se for a vez e tiver 10 cartas
+                if (info.offset.y < -70 && isMyTurn && hand.length === 10) {
                   handleDragPassCard(card);
+                  return;
+                }
+                // 2. Arrasta para os lados (> 25px) -> Reordena a carta na mão
+                if (Math.abs(info.offset.x) > 25) {
+                  const cardWidth = 45;
+                  const deltaIndex = Math.round(info.offset.x / cardWidth);
+                  if (deltaIndex !== 0) {
+                    const newIndex = Math.max(0, Math.min(hand.length - 1, index + deltaIndex));
+                    if (newIndex !== index) {
+                      setHand(prevHand => {
+                        const updated = [...prevHand];
+                        const [movedCard] = updated.splice(index, 1);
+                        updated.splice(newIndex, 0, movedCard);
+                        return updated;
+                      });
+                    }
+                  }
                 }
               }}
             />

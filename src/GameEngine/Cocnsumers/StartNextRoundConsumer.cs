@@ -7,10 +7,12 @@ namespace GameEngine.Consumers;
 public class StartNextRoundConsumer : IConsumer<StartNextRound>
 {
     private readonly GameLogicService _logic;
+    private readonly BotService _botService;
 
-    public StartNextRoundConsumer(GameLogicService logic)
+    public StartNextRoundConsumer(GameLogicService logic, BotService botService)
     {
         _logic = logic;
+        _botService = botService;
     }
 
     public async Task Consume(ConsumeContext<StartNextRound> context)
@@ -32,6 +34,8 @@ public class StartNextRoundConsumer : IConsumer<StartNextRound>
             state.DiscardPile.LastOrDefault(),
             null
         ));
+
+        _botService.TriggerBotCheck(msg.GameId);
 
         Console.WriteLine($"[GameEngine] Próxima rodada iniciada na partida {msg.GameId}, fase: {state.Phase}");
     }

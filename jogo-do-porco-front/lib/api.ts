@@ -78,6 +78,10 @@ export const api = {
     }),
   startRoom: (roomId: string) =>
     request<void>(`/rooms/${roomId}/start`, { method: "POST" }),
+  addBot: (roomId: string) =>
+    request<import("./types").PlayerDto>(`/rooms/${roomId}/bot`, { method: "POST" }),
+  removeBot: (roomId: string, botId: string) =>
+    request<void>(`/rooms/${roomId}/bot/${botId}`, { method: "DELETE" }),
   getMatchHistory: () =>
     request<any[]>("/rooms/history"),
 };

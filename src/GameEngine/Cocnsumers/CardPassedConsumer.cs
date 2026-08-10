@@ -8,10 +8,12 @@ namespace GameEngine.Consumers;
 public class CardPassedConsumer : IConsumer<CardPassed>
 {
     private readonly GameLogicService _logic;
+    private readonly BotService _botService;
 
-    public CardPassedConsumer(GameLogicService logic)
+    public CardPassedConsumer(GameLogicService logic, BotService botService)
     {
         _logic = logic;
+        _botService = botService;
     }
 
     public async Task Consume(ConsumeContext<CardPassed> context)
@@ -48,6 +50,8 @@ public class CardPassedConsumer : IConsumer<CardPassed>
             state.DiscardPile.LastOrDefault(),
             null
         ));
+
+        _botService.TriggerBotCheck(msg.GameId);
 
         Console.WriteLine($"[GameEngine] Carta passada na partida {msg.GameId}, fase atual: {state.Phase}");
     }

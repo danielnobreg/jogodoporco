@@ -8,6 +8,7 @@ export interface PlayerDto {
   id: string;
   username: string;
   letters?: string;
+  isBot?: boolean;
 }
 
 export interface Room {

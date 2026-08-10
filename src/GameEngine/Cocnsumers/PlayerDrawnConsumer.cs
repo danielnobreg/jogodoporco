@@ -7,10 +7,12 @@ namespace GameEngine.Consumers;
 public class PlayerDrawnConsumer : IConsumer<PlayerDrawn>
 {
     private readonly GameLogicService _logic;
+    private readonly BotService _botService;
 
-    public PlayerDrawnConsumer(GameLogicService logic)
+    public PlayerDrawnConsumer(GameLogicService logic, BotService botService)
     {
         _logic = logic;
+        _botService = botService;
     }
 
     public async Task Consume(ConsumeContext<PlayerDrawn> context)
@@ -45,6 +47,8 @@ public class PlayerDrawnConsumer : IConsumer<PlayerDrawn>
             state.DiscardPile.LastOrDefault(),
             null
         ));
+
+        _botService.TriggerBotCheck(msg.GameId);
 
         Console.WriteLine($"[GameEngine] Jogador {msg.PlayerId} comprou carta do {msg.Source} na partida {msg.GameId}");
     }

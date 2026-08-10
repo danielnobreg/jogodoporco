@@ -8,6 +8,7 @@ var builder = Host.CreateApplicationBuilder(args);
 // registra a lógica do jogo e o armazenamento de estado
 builder.Services.AddSingleton<GameStateStore>();
 builder.Services.AddSingleton<GameLogicService>();
+builder.Services.AddSingleton<BotService>();
 
 var serviceBusConnectionString = Environment.GetEnvironmentVariable("SERVICEBUS_CONNECTION");
 var isProduction = !string.IsNullOrEmpty(serviceBusConnectionString);

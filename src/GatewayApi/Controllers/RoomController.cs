@@ -104,4 +104,18 @@ public class RoomController : ControllerBase
         await _roomService.UpdateVisibilityAsync(roomId, isPrivate);
         return Ok();
     }
+
+    [HttpPost("{roomId:guid}/bot")]
+    public async Task<IActionResult> AddBot(Guid roomId)
+    {
+        var bot = await _roomService.AddBotAsync(roomId);
+        return Ok(bot);
+    }
+
+    [HttpDelete("{roomId:guid}/bot/{botId:guid}")]
+    public async Task<IActionResult> RemoveBot(Guid roomId, Guid botId)
+    {
+        await _roomService.RemoveBotAsync(roomId, botId);
+        return Ok();
+    }
 }

@@ -86,7 +86,8 @@ export function CardComponent({
       layout
       drag={isForbidden ? false : drag}
       dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-      dragElastic={1}
+      dragElastic={0.8}
+      dragSnapToOrigin={true}
       onDragStart={onDragStart}
       onDrag={onDrag}
       onDragEnd={onDragEnd}
