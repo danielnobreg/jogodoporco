@@ -348,9 +348,17 @@ public class GameLogicService
             if (cartaComprada.IsCoringa)
                 state.CoringaHolderId = playerId;
  
-            // Define a carta comprada como proibida para este jogador neste turno
-            state.LastPassedCard = cartaComprada;
-            state.LastPassedCardToPlayerId = playerId;
+            // Define a carta comprada como proibida apenas se foi comprada da pilha de descarte
+            if (source == "pile")
+            {
+                state.LastPassedCard = cartaComprada;
+                state.LastPassedCardToPlayerId = playerId;
+            }
+            else
+            {
+                state.LastPassedCard = null;
+                state.LastPassedCardToPlayerId = null;
+            }
  
             // Verifica se completou 3 trios após a compra (vitoria)
             VerificarVitoria(state, playerId);
