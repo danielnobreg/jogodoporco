@@ -152,8 +152,21 @@ app.UseCors("Prod");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-
-// rota do Hub SignalR
 app.MapHub<GameHub>("/hub/game");
+
+// automigração de colunas no banco PostgreSQL
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.EnsureCreated();
+    try
+    {
+        db.Database.ExecuteSqlRaw(@"ALTER TABLE ""Players"" ADD COLUMN IF NOT EXISTS ""IsBot"" boolean NOT NULL DEFAULT false;");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Migration note: {ex.Message}");
+    }
+}
 
 app.Run();
