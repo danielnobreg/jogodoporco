@@ -212,7 +212,7 @@ export default function RoomPage() {
         if (data.players) {
           const init: Record<string, string> = {};
           data.players.forEach(p => {
-            init[p.id] = p.letters || "";
+            init[p.id.toLowerCase()] = p.letters || "";
           });
           setLetters(init);
         }
@@ -233,8 +233,9 @@ export default function RoomPage() {
             setLetters(prev => {
               const updated = { ...prev };
               res.players.forEach(p => {
-                if (updated[p.id] === undefined) {
-                  updated[p.id] = p.letters || "";
+                const key = p.id.toLowerCase();
+                if (updated[key] === undefined) {
+                  updated[key] = p.letters || "";
                 }
               });
               return updated;
@@ -251,17 +252,10 @@ export default function RoomPage() {
           .then(res => {
             setRoom(res);
             setLetters(prev => {
-              const updated = { ...prev };
-              const activeIds = res.players.map(p => p.id.toLowerCase());
-              Object.keys(updated).forEach(k => {
-                if (!activeIds.includes(k.toLowerCase())) {
-                  delete updated[k];
-                }
-              });
+              const updated: Record<string, string> = {};
               res.players.forEach(p => {
-                if (updated[p.id] === undefined) {
-                  updated[p.id] = p.letters || "";
-                }
+                const key = p.id.toLowerCase();
+                updated[key] = p.letters || prev[key] || "";
               });
               return updated;
             });
@@ -287,17 +281,10 @@ export default function RoomPage() {
         players: data.players
       } : null);
       setLetters(prev => {
-        const updated = { ...prev };
-        const activeIds = data.players.map(p => p.id.toLowerCase());
-        Object.keys(updated).forEach(k => {
-          if (!activeIds.includes(k.toLowerCase())) {
-            delete updated[k];
-          }
-        });
+        const updated: Record<string, string> = {};
         data.players.forEach(p => {
-          if (updated[p.id] === undefined) {
-            updated[p.id] = p.letters || "";
-          }
+          const key = p.id.toLowerCase();
+          updated[key] = p.letters || prev[key] || "";
         });
         return updated;
       });
@@ -349,7 +336,13 @@ export default function RoomPage() {
     });
 
     const offRound = on("RoundCompleted", (data: RoundCompletedEvent) => {
-      setLetters(data.playerLetters);
+      const normalized: Record<string, string> = {};
+      if (data.playerLetters) {
+        Object.entries(data.playerLetters).forEach(([k, v]) => {
+          normalized[k.toLowerCase()] = v;
+        });
+      }
+      setLetters(normalized);
       setGameOver(data.gameOver);
       setLastRoundLoserId(data.loserPlayerId);
       setLastPassedCard(null);
