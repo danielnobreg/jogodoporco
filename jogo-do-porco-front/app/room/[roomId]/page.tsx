@@ -187,6 +187,11 @@ export default function RoomPage() {
     return trios.length >= 3; // a vitória é com 3 trios formados
   }, [trios]);
 
+  const hasAlreadySlapped = useMemo(() => {
+    if (!myId || !slapOrder) return false;
+    return slapOrder.some(s => s.playerId.toLowerCase() === myId.toLowerCase());
+  }, [myId, slapOrder]);
+
   const canSlap = phase === "Slapping" || (phase === "Playing" && hasQuadra);
 
   const isSelectedCardForbidden = selectedCard ? isCardForbidden(selectedCard) : false;
@@ -967,7 +972,9 @@ export default function RoomPage() {
                 <div className="flex flex-col items-center gap-2">
                   <p className="font-display text-xl text-[#F4E9D8]/60 max-w-md">
                     {phase === "Slapping"
-                      ? "Alguém formou trios! BATA NA MESA!"
+                      ? (hasAlreadySlapped
+                        ? "Você já bateu na mesa! Aguardando os outros..."
+                        : "🎉 3 Trios Formados! BATA NA MESA RÁPIDO!")
                       : isMyTurn
                       ? (hand.length === 9
                         ? "Seu turno! Compre do monte (deck) ou da pilha de descarte."
@@ -1141,7 +1148,12 @@ export default function RoomPage() {
 
       {/* botão de bater (apenas se mais de 2 jogadores) */}
       {room?.playerCount && room.playerCount > 2 && (
-        <SlapButton active={phase === "Slapping" || hasQuadra} onSlap={handleSlap} disabled={!connected || !canSlap} />
+        <SlapButton
+          active={(phase === "Slapping" || hasQuadra) && !hasAlreadySlapped}
+          hasAlreadySlapped={hasAlreadySlapped}
+          onSlap={handleSlap}
+          disabled={!connected || !canSlap || hasAlreadySlapped}
+        />
       )}
 
       {/* Overlay Visual e SVG Cracking para Fase Slapping ou Fim de Rodada */}

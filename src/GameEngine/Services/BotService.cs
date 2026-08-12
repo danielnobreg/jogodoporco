@@ -115,6 +115,33 @@ public class BotService
                         await PublishState(updated);
                     });
                 }
+
+                // Timer de segurança: força a batida de jogadores que ficarem AFK por mais de 8s
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(8000);
+                    var currentState = _store.Obter(gameId);
+                    if (currentState == null || currentState.Phase != "Slapping") return;
+
+                    var unslappedRemaining = currentState.PlayerIds
+                        .Where(pId => !currentState.SlapOrder.Any(s => s.PlayerId == pId))
+                        .ToList();
+
+                    if (unslappedRemaining.Count > 0)
+                    {
+                        GameState finalState = currentState;
+                        foreach (var pId in unslappedRemaining)
+                        {
+                            lock (currentState)
+                            {
+                                if (currentState.Phase != "Slapping" || currentState.SlapOrder.Any(s => s.PlayerId == pId))
+                                    continue;
+                                finalState = _logic.ProcessarBatida(gameId, pId, DateTime.UtcNow);
+                            }
+                        }
+                        await PublishState(finalState);
+                    }
+                });
             }
         }
         catch (Exception ex)

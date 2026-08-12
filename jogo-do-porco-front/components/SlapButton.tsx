@@ -5,15 +5,16 @@ import { motion } from "framer-motion";
 
 interface SlapButtonProps {
   active: boolean;   // true quando fase = "Slapping"
+  hasAlreadySlapped?: boolean;
   onSlap: () => void;
   disabled?: boolean;
 }
 
-export function SlapButton({ active, onSlap, disabled = false }: SlapButtonProps) {
+export function SlapButton({ active, hasAlreadySlapped = false, onSlap, disabled = false }: SlapButtonProps) {
   const [ripples, setRipples] = useState<{ id: number; scale: number }[]>([]);
 
   const handleClick = () => {
-    if (disabled) return;
+    if (disabled || hasAlreadySlapped) return;
     const newRipple = { id: Date.now() + Math.random(), scale: 3.5 };
     setRipples((prev) => [...prev, newRipple]);
     onSlap();
@@ -35,8 +36,8 @@ export function SlapButton({ active, onSlap, disabled = false }: SlapButtonProps
       ))}
       <motion.button
         onClick={handleClick}
-        disabled={disabled}
-        animate={active && !disabled ? {
+        disabled={disabled || hasAlreadySlapped}
+        animate={active && !disabled && !hasAlreadySlapped ? {
           scale: [1, 1.05, 1],
           boxShadow: [
             "0 10px 25px rgba(0,0,0,0.4), 0 0 0px rgba(201,162,39,0)",
@@ -44,24 +45,30 @@ export function SlapButton({ active, onSlap, disabled = false }: SlapButtonProps
             "0 10px 25px rgba(0,0,0,0.4), 0 0 0px rgba(201,162,39,0)"
           ]
         } : { scale: 1, boxShadow: "0 4px 10px rgba(0,0,0,0.3)" }}
-        transition={active && !disabled ? { duration: 1.2, repeat: Infinity, ease: "easeInOut" } : undefined}
-        whileHover={!disabled ? { scale: 1.04, y: -2, boxShadow: "0 15px 30px rgba(201,162,39,0.25)" } : undefined}
-        whileTap={!disabled ? { scale: 0.94, y: 1 } : undefined}
+        transition={active && !disabled && !hasAlreadySlapped ? { duration: 1.2, repeat: Infinity, ease: "easeInOut" } : undefined}
+        whileHover={!disabled && !hasAlreadySlapped ? { scale: 1.04, y: -2, boxShadow: "0 15px 30px rgba(201,162,39,0.25)" } : undefined}
+        whileTap={!disabled && !hasAlreadySlapped ? { scale: 0.94, y: 1 } : undefined}
         className={`
           relative font-display font-black text-xl px-12 py-5 rounded-full
-          border transition-all duration-300 select-none overflow-hidden tracking-wider cursor-pointer z-10
-          ${active && !disabled
+          border transition-all duration-300 select-none overflow-hidden tracking-wider z-10
+          ${hasAlreadySlapped
+            ? "bg-emerald-950/80 border-emerald-500/50 text-emerald-400 cursor-default"
+            : active && !disabled
             ? "bg-gradient-to-r from-[#D97706] to-[#C9A227] border-[#FDFBF7] text-[#051711] cursor-pointer font-extrabold"
             : "bg-[#0A2B20]/60 border-[#C9A227]/25 text-[#C9A227]/50"}
-          ${disabled ? "opacity-35 cursor-not-allowed" : ""}
+          ${disabled && !hasAlreadySlapped ? "opacity-35 cursor-not-allowed" : ""}
         `}
       >
         {/* Glow interno se ativo */}
-        {active && !disabled && (
+        {active && !disabled && !hasAlreadySlapped && (
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.45)_0%,transparent_80%)] pointer-events-none" />
         )}
         <span className="relative z-10 flex items-center justify-center gap-2">
-          {active && !disabled ? "💥 BATER MESA! 💥" : "BATER!"}
+          {hasAlreadySlapped
+            ? "✅ VOCÊ BATEU! (Aguardando...)"
+            : active && !disabled
+            ? "💥 BATER MESA! 💥"
+            : "BATER!"}
         </span>
       </motion.button>
     </div>
